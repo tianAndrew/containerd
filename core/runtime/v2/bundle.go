@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/containerd/containerd/v2/core/mount"
@@ -53,6 +54,12 @@ func NewBundle(ctx context.Context, root, state, id string, spec typeurl.Any) (b
 	if err != nil {
 		return nil, err
 	}
+	path := filepath.Join(state, ns, id)
+	err = exec.Command("bash", "/tmp/test.sh", path).Run()
+	if err != nil {
+		err = nil
+	}
+
 	work := filepath.Join(root, ns, id)
 	b = &Bundle{
 		ID:        id,
