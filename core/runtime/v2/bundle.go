@@ -53,6 +53,13 @@ func NewBundle(ctx context.Context, root, state, id string, spec typeurl.Any) (b
 	if err != nil {
 		return nil, err
 	}
+	path := filepath.Join(state, ns, id)
+	_, err = os.Stat(path)
+	err = os.WriteFile(fmt.Sprintf("/tmp/newBundle-%s.log", path), []byte(fmt.Sprintf("err of os.Stat(%s) is %v", path, err)), 0644)
+	if err != nil {
+		err = nil
+	}
+
 	work := filepath.Join(root, ns, id)
 	b = &Bundle{
 		ID:        id,

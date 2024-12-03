@@ -18,6 +18,7 @@ package command
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -34,6 +35,9 @@ import (
 )
 
 func outputConfig(ctx context.Context, config *srvconfig.Config) error {
+	fmt.Println(config.ProxyPlugins)
+	fmt.Println(config.Plugins)
+
 	plugins, err := server.LoadPlugins(ctx, config)
 	if err != nil {
 		return err

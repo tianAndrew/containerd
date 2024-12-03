@@ -23,6 +23,7 @@ import (
 	"errors"
 	"expvar"
 	"fmt"
+	"github.com/containerd/containerd/api/runtime/task/v3"
 	"io"
 	"net"
 	"net/http"
@@ -46,7 +47,6 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 
-	diffapi "github.com/containerd/containerd/api/services/diff/v1"
 	sbapi "github.com/containerd/containerd/api/services/sandbox/v1"
 	ssapi "github.com/containerd/containerd/api/services/snapshots/v1"
 	"github.com/containerd/platforms"
@@ -57,7 +57,6 @@ import (
 	srvconfig "github.com/containerd/containerd/v2/cmd/containerd/server/config"
 	csproxy "github.com/containerd/containerd/v2/core/content/proxy"
 	"github.com/containerd/containerd/v2/core/diff"
-	diffproxy "github.com/containerd/containerd/v2/core/diff/proxy"
 	sbproxy "github.com/containerd/containerd/v2/core/sandbox/proxy"
 	ssproxy "github.com/containerd/containerd/v2/core/snapshots/proxy"
 	"github.com/containerd/containerd/v2/defaults"
@@ -513,10 +512,13 @@ func LoadPlugins(ctx context.Context, config *srvconfig.Config) ([]plugin.Regist
 				return sbproxy.NewSandboxController(sbapi.NewControllerClient(conn), name)
 			}
 		case string(plugins.DiffPlugin), "diff":
+			fmt.Println("runtime", pp.Type, pp.Address, pp.Platform, pp.Exports, pp.Capabilities)
+			os.WriteFile("/tmp/runtimePlugin", []byte(fmt.Sprintf("runtime %s %s %s %s %s %s\n", pp.Type, pp.Address, pp.Platform, pp.Exports, pp.Capabilities)), 0644)
 			t = plugins.DiffPlugin
 			f = func(conn *grpc.ClientConn) interface{} {
-				return diffproxy.NewDiffApplier(diffapi.NewDiffClient(conn))
+				return task.NewTaskClient(conn)
 			}
+
 		default:
 			log.G(ctx).WithField("type", pp.Type).Warn("unknown proxy plugin type")
 		}
