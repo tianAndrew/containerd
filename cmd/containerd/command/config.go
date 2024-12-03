@@ -34,6 +34,7 @@ import (
 )
 
 func outputConfig(ctx context.Context, config *srvconfig.Config) error {
+
 	plugins, err := server.LoadPlugins(ctx, config)
 	if err != nil {
 		return err

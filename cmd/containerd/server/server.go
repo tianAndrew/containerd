@@ -23,6 +23,7 @@ import (
 	"errors"
 	"expvar"
 	"fmt"
+	diffapi "github.com/containerd/containerd/api/services/diff/v1"
 	"io"
 	"net"
 	"net/http"
@@ -46,7 +47,6 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 
-	diffapi "github.com/containerd/containerd/api/services/diff/v1"
 	sbapi "github.com/containerd/containerd/api/services/sandbox/v1"
 	ssapi "github.com/containerd/containerd/api/services/snapshots/v1"
 	"github.com/containerd/platforms"

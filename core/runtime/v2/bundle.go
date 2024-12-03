@@ -17,8 +17,12 @@
 package v2
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -41,6 +45,41 @@ func LoadBundle(ctx context.Context, root, id string) (*Bundle, error) {
 		Path:      filepath.Join(root, ns, id),
 		Namespace: ns,
 	}, nil
+}
+
+type RequestData struct {
+	Paths     []string `json:"paths"`
+	Envs      []string `json:"envs"`
+	OverlayFs string   `json:"overlayFs"`
+}
+
+func parseEnvs(spec typeurl.Any) []string {
+	var common struct {
+		Process struct {
+			Env []string `json:"env"`
+		} `json:"process"`
+	}
+	err := json.Unmarshal(spec.GetValue(), &common)
+	if err != nil {
+		return nil
+	}
+	return common.Process.Env
+}
+
+func parsePath(spec typeurl.Any) string {
+	var common struct {
+		Process struct {
+			Env []string `json:"env"`
+		} `json:"process"`
+		Root struct {
+			Path string `json:"path"`
+		} `json:"root"`
+	}
+	err := json.Unmarshal(spec.GetValue(), &common)
+	if err != nil {
+		return ""
+	}
+	return filepath.Dir(common.Root.Path)
 }
 
 // NewBundle returns a new bundle on disk
@@ -84,21 +123,40 @@ func NewBundle(ctx context.Context, root, state, id string, spec typeurl.Any) (b
 	if err := os.MkdirAll(filepath.Dir(work), 0711); err != nil {
 		return nil, err
 	}
-	rootfs := filepath.Join(b.Path, "rootfs")
-	if err := os.MkdirAll(rootfs, 0711); err != nil {
-		return nil, err
-	}
-	paths = append(paths, rootfs)
 	if err := os.Mkdir(work, 0711); err != nil {
 		if !os.IsExist(err) {
 			return nil, err
 		}
-		os.RemoveAll(work)
+		_ = os.RemoveAll(work)
 		if err := os.Mkdir(work, 0711); err != nil {
 			return nil, err
 		}
 	}
 	paths = append(paths, work)
+
+	requestData := RequestData{
+		Paths:     []string{b.Path, work},
+		Envs:      parseEnvs(spec),
+		OverlayFs: parsePath(spec),
+	}
+
+	jsonData, err := json.Marshal(requestData)
+	if err != nil {
+		log.Fatalf("Error marshalling JSON: %v", err)
+	}
+
+	resp, err := http.Post("http://localhost:8443/api/v1/job", "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		log.Fatalf("Error making POST request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	rootfs := filepath.Join(b.Path, "rootfs")
+	if err := os.MkdirAll(rootfs, 0711); err != nil {
+		return nil, err
+	}
+	paths = append(paths, rootfs)
+
 	// symlink workdir
 	if err := os.Symlink(work, filepath.Join(b.Path, "work")); err != nil {
 		return nil, err
