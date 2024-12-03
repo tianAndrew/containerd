@@ -23,6 +23,7 @@ import (
 	"errors"
 	"expvar"
 	"fmt"
+	"github.com/containerd/containerd/api/runtime/task/v3"
 	"io"
 	"net"
 	"net/http"
@@ -517,6 +518,12 @@ func LoadPlugins(ctx context.Context, config *srvconfig.Config) ([]plugin.Regist
 			f = func(conn *grpc.ClientConn) interface{} {
 				return diffproxy.NewDiffApplier(diffapi.NewDiffClient(conn))
 			}
+		case string(plugins.RuntimePluginV2), "runtime":
+			t = plugins.RuntimePluginV2
+			f = func(conn *grpc.ClientConn) interface{} {
+				return task.NewTaskClient(conn)
+			}
+
 		default:
 			log.G(ctx).WithField("type", pp.Type).Warn("unknown proxy plugin type")
 		}
